@@ -1,4 +1,5 @@
 {
+  "modelVersion": "5.0.1",
   "app": {
     "signingConfigs": [],
     "products": [
