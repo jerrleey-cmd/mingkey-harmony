@@ -14,6 +14,7 @@ import commonEventManager from '@ohos.commonEventManager';
 import hilog from '@ohos.hilog';
 import Want from '@ohos.app.ability.Want';
 import AbilityConstant from '@ohos.app.ability.AbilityConstant';
+import AsyncCallback from '@ohos.base';
 
 /**
  * 日志域ID，用于区分不同模块的日志
@@ -59,6 +60,9 @@ interface TranslateResultData {
 export default class EntryAbility extends UIAbility {
   // 翻译服务实例引用
   private translateService: TranslateService | null = null;
+  
+  // CommonEvent订阅者引用
+  private subscriber: commonEventManager.CommonEventSubscriber | null = null;
 
   /**
    * Ability创建时调用
@@ -92,13 +96,11 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage) {
     hilog.info(0x0000, TAG, '窗口创建');
     
-    // 加载主页面
-    windowStage.loadContent('pages/Index', (err: Error, data: Object) => {
-      if (err.code) {
-        hilog.error(0x0000, TAG, '加载页面失败: %{public}s', JSON.stringify(err));
-        return;
-      }
+    // 加载主页面 - 使用Promise方式
+    windowStage.loadContent('pages/Index').then(() => {
       hilog.info(0x0000, TAG, '页面加载成功');
+    }).catch((err: Error) => {
+      hilog.error(0x0000, TAG, '加载页面失败: %{public}s', JSON.stringify(err));
     });
   }
 
@@ -127,22 +129,26 @@ export default class EntryAbility extends UIAbility {
       events: [TRANSLATE_REQUEST_EVENT]
     };
 
-    // 发布订阅 - subscribe 只接受2个参数
-    commonEventManager.subscribe(subscribeInfo, this.handleTranslateRequest.bind(this));
+    // 发布订阅 - subscribe 接受 (subscribeInfo, callback)
+    const self = this;
+    commonEventManager.subscribe(subscribeInfo, (err: Error, data: commonEventManager.CommonEventData) => {
+      if (err) {
+        hilog.error(0x0000, TAG, '订阅失败: %{public}s', JSON.stringify(err));
+        return;
+      }
+      hilog.info(0x0000, TAG, '收到翻译请求: %{public}s', JSON.stringify(data));
+      
+      // 处理翻译请求
+      self.handleTranslateRequest(data);
+    });
   }
 
   /**
    * 处理翻译请求
-   * @param err 错误信息
    * @param data 事件数据
    */
-  private handleTranslateRequest(err: commonEventManager.CommonEventData, data: commonEventManager.CommonEventData): void {
-    if (err) {
-      hilog.error(0x0000, TAG, '处理翻译请求失败: %{public}s', JSON.stringify(err));
-      return;
-    }
-    
-    hilog.info(0x0000, TAG, '收到翻译请求: %{public}s', JSON.stringify(data));
+  private handleTranslateRequest(data: commonEventManager.CommonEventData): void {
+    hilog.info(0x0000, TAG, '处理翻译请求');
 
     // 解析请求数据
     const requestData: Record<string, Object> = data.parameters as Record<string, Object>;
@@ -201,7 +207,16 @@ export default class EntryAbility extends UIAbility {
    */
   private unsubscribeEvents(): void {
     hilog.info(0x0000, TAG, '取消事件订阅');
-    // 实际取消订阅逻辑（简化版）
+    if (this.subscriber) {
+      commonEventManager.unsubscribe(this.subscriber, (err: Error) => {
+        if (err) {
+          hilog.error(0x0000, TAG, '取消订阅失败: %{public}s', JSON.stringify(err));
+        } else {
+          hilog.info(0x0000, TAG, '取消订阅成功');
+        }
+      });
+      this.subscriber = null;
+    }
   }
 }
 
