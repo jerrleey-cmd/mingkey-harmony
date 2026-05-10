@@ -11,7 +11,9 @@
 import UIAbility from '@ohos.app.ability.UIAbility';
 import window from '@ohos.window';
 import commonEventManager from '@ohos.commonEventManager';
-import hilog from '@hilog';
+import hilog from '@ohos.hilog';
+import Want from '@ohos.app.ability.Want';
+import AbilityConstant from '@ohos.app.ability.AbilityConstant';
 
 /**
  * 日志域ID，用于区分不同模块的日志
@@ -29,6 +31,28 @@ const TRANSLATE_REQUEST_EVENT = 'com.mingkey.inputmethod.TRANSLATE_REQUEST';
 const TRANSLATE_RESPONSE_EVENT = 'com.mingkey.inputmethod.TRANSLATE_RESPONSE';
 
 /**
+ * 翻译请求数据结构
+ */
+interface TranslateRequestData {
+  text: string;
+  sourceLang: string;
+  targetLang: string;
+  requestId: string;
+}
+
+/**
+ * 翻译结果数据结构
+ */
+interface TranslateResultData {
+  success: boolean;
+  original?: string;
+  translated?: string;
+  sourceLang?: string;
+  targetLang?: string;
+  error?: string;
+}
+
+/**
  * 主应用Ability类
  * 继承UIAbility，处理应用生命周期
  */
@@ -40,7 +64,7 @@ export default class EntryAbility extends UIAbility {
    * Ability创建时调用
    * 初始化翻译服务订阅
    */
-  onCreate(want, launchParam) {
+  onCreate(want: Want, launchParam: AbilityConstant.LaunchParam) {
     hilog.info(0x0000, TAG, '铭键输入法主应用启动');
     
     // 初始化翻译服务
@@ -69,7 +93,7 @@ export default class EntryAbility extends UIAbility {
     hilog.info(0x0000, TAG, '窗口创建');
     
     // 加载主页面
-    windowStage.loadContent('pages/Index', (err, data) => {
+    windowStage.loadContent('pages/Index', (err: Error, data: Object) => {
       if (err.code) {
         hilog.error(0x0000, TAG, '加载页面失败: %{public}s', JSON.stringify(err));
         return;
@@ -98,22 +122,13 @@ export default class EntryAbility extends UIAbility {
   private subscribeTranslateRequest(): void {
     hilog.info(0x0000, TAG, '订阅翻译请求事件');
 
-    // 订阅选项
-    const subscribeOptions: commonEventManager.SubscribeOptions = {
+    // 订阅选项 - 使用 CommonEventSubscribeInfo
+    const subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
       events: [TRANSLATE_REQUEST_EVENT]
     };
 
-    // 订阅回调
-    const callback = (err, subscribeInfo) => {
-      if (err) {
-        hilog.error(0x0000, TAG, '订阅失败: %{public}s', JSON.stringify(err));
-        return;
-      }
-      hilog.info(0x0000, TAG, '订阅成功，订阅ID: %{public}d', subscribeInfo.subscribeId);
-    };
-
-    // 发布订阅
-    commonEventManager.subscribe(subscribeOptions, this.handleTranslateRequest.bind(this), callback);
+    // 发布订阅 - subscribe 只接受2个参数
+    commonEventManager.subscribe(subscribeInfo, this.handleTranslateRequest.bind(this));
   }
 
   /**
@@ -121,29 +136,29 @@ export default class EntryAbility extends UIAbility {
    * @param err 错误信息
    * @param data 事件数据
    */
-  private handleTranslateRequest(err: ESObject, data: ESObject): void {
+  private handleTranslateRequest(err: commonEventManager.CommonEventData, data: commonEventManager.CommonEventData): void {
     if (err) {
       hilog.error(0x0000, TAG, '处理翻译请求失败: %{public}s', JSON.stringify(err));
       return;
     }
-
+    
     hilog.info(0x0000, TAG, '收到翻译请求: %{public}s', JSON.stringify(data));
 
     // 解析请求数据
-    const requestData = data.parameters as ESObject;
-    const text = requestData?.text as string || '';
-    const sourceLang = requestData?.sourceLang as string || 'zh';
-    const targetLang = requestData?.targetLang as string || 'en';
-    const requestId = requestData?.requestId as string || '';
+    const requestData: Record<string, Object> = data.parameters as Record<string, Object>;
+    const text: string = requestData?.['text'] as string || '';
+    const sourceLang: string = requestData?.['sourceLang'] as string || 'zh';
+    const targetLang: string = requestData?.['targetLang'] as string || 'en';
+    const requestId: string = requestData?.['requestId'] as string || '';
 
     // 调用翻译服务
     if (this.translateService) {
       this.translateService.translate(text, sourceLang, targetLang)
-        .then((result) => {
+        .then((result: TranslateResultData) => {
           // 发布翻译结果
           this.publishTranslateResponse(requestId, result);
         })
-        .catch((error) => {
+        .catch((error: Error) => {
           hilog.error(0x0000, TAG, '翻译失败: %{public}s', JSON.stringify(error));
           // 发布错误结果
           this.publishTranslateResponse(requestId, {
@@ -160,11 +175,11 @@ export default class EntryAbility extends UIAbility {
    * @param requestId 请求ID
    * @param result 翻译结果
    */
-  private publishTranslateResponse(requestId: string, result: ESObject): void {
+  private publishTranslateResponse(requestId: string, result: TranslateResultData): void {
     hilog.info(0x0000, TAG, '发布翻译响应: %{public}s', JSON.stringify(result));
 
-    // 发布选项
-    const publishOptions: commonEventManager.PublishOptions = {
+    // 发布数据
+    const publishData: commonEventManager.CommonEventPublishData = {
       parameters: {
         requestId: requestId,
         result: JSON.stringify(result)
@@ -172,7 +187,7 @@ export default class EntryAbility extends UIAbility {
     };
 
     // 发布事件
-    commonEventManager.publish(TRANSLATE_RESPONSE_EVENT, publishOptions, (err) => {
+    commonEventManager.publish(TRANSLATE_RESPONSE_EVENT, publishData, (err: Error) => {
       if (err) {
         hilog.error(0x0000, TAG, '发布翻译响应失败: %{public}s', JSON.stringify(err));
       } else {
@@ -213,12 +228,12 @@ class TranslateService {
    * @param targetLang 目标语言
    * @returns 翻译结果
    */
-  async translate(text: string, sourceLang: string, targetLang: string): Promise<ESObject> {
+  async translate(text: string, sourceLang: string, targetLang: string): Promise<TranslateResultData> {
     hilog.info(0x0000, TAG, '执行翻译: %{public}s -> %{public}s', sourceLang, targetLang);
 
     // PoC阶段：使用简单的模拟翻译
     // 实际场景中这里会调用真实的翻译API
-    return new Promise((resolve) => {
+    return new Promise<TranslateResultData>((resolve) => {
       setTimeout(() => {
         const result = this.mockTranslate(text, sourceLang, targetLang);
         resolve({

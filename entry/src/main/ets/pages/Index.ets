@@ -10,7 +10,17 @@
 
 import commonEventManager from '@ohos.commonEventManager';
 import promptAction from '@ohos.promptAction';
-import hilog from '@hilog';
+import hilog from '@ohos.hilog';
+
+/**
+ * 发布翻译请求数据接口
+ */
+interface TranslatePublishData {
+  requestId: string;
+  text: string;
+  sourceLang: string;
+  targetLang: string;
+}
 
 @Entry
 @Component
@@ -61,8 +71,8 @@ struct Index {
     hilog.info(0x0000, 'MingKeyIndex', '测试翻译功能');
     
     // 发布测试翻译请求
-    const requestId = `test_${Date.now()}`;
-    const publishOptions: commonEventManager.PublishOptions = {
+    const requestId: string = `test_${Date.now()}`;
+    const publishData: commonEventManager.CommonEventPublishData = {
       parameters: {
         requestId: requestId,
         text: '你好世界',
@@ -71,7 +81,7 @@ struct Index {
       }
     };
 
-    commonEventManager.publish('com.mingkey.inputmethod.TRANSLATE_REQUEST', publishOptions, (err) => {
+    commonEventManager.publish('com.mingkey.inputmethod.TRANSLATE_REQUEST', publishData, (err: Error) => {
       if (err) {
         hilog.error(0x0000, 'MingKeyIndex', '发布测试请求失败: %{public}s', JSON.stringify(err));
         promptAction.showToast({
