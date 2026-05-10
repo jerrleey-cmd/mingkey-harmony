@@ -1,4 +1,5 @@
 {
+  "modelVersion": "5.0.1",
   "name": "keyboard",
   "version": "0.1.0",
   "description": "铭键输入法键盘模块",
