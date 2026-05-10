@@ -17,40 +17,13 @@ jobs:
       - name: Install dependencies
         run: |
           cd $GITHUB_WORKSPACE
-          # 配置 npm 使用华为镜像（@ohos包在npm仓库）
-          export NODE_HOME=$COMMANDLINE_TOOL_DIR/command-line-tools/tool/node
-          export PATH=$NODE_HOME/bin:$PATH
-          npm config set registry https://repo.huaweicloud.com/repository/npm/
-          npm config set "@ohos:registry" https://repo.harmonyos.com/npm/
-          # 安装 hvigor 插件
-          npm install @ohos/hvigor-ohos-plugin@5.16.2 --save-dev 2>&1 || true
+          ohpm install --all 2>&1 || true
 
-      - name: Build HAP (entry)
+      - name: Build HAP
         run: |
           cd $GITHUB_WORKSPACE
-          # 检查环境
-          echo "=== HVIGOR VERSION ==="
-          hvigorw -v || true
-          echo "=== SDK VERSION ==="
-          echo $OHOS_BASE_SDK_HOME
-          ls -la $OHOS_BASE_SDK_HOME/
-          echo "=== BUILD PROFILE ==="
-          cat build-profile.json5
           hvigorw clean --no-daemon 2>&1 || true
-          hvigorw assembleHap --mode module -p product=default -p buildMode=debug --no-daemon --stacktrace 2>&1
-
-      - name: Get build output
-        id: get_build_output
-        run: |
-          cd $GITHUB_WORKSPACE
-          # Find all HAP files
-          echo "=== HAP files ==="
-          find . -name "*.hap" -type f 2>/dev/null || echo "No HAP files found"
-          # Get output path
-          OUTPUT_DIR=$(find . -path "*/build/default/outputs/default" -type d | head -1)
-          if [ -n "$OUTPUT_DIR" ]; then
-            echo "output_path=$GITHUB_WORKSPACE/$OUTPUT_DIR" >> $GITHUB_OUTPUT
-          fi
+          hvigorw assembleHap --mode module -p product=default -p buildMode=debug --no-daemon 2>&1
 
       - name: Upload HAP artifacts
         uses: actions/upload-artifact@v4
@@ -67,11 +40,9 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           echo "## Build Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           find . -name "*.hap" -o -name "*.app" | while read f; do
-            SIZE=$(du -h "$f" | cut -f1)
-            echo "- \`${f}\` (${SIZE})" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${f}\` ($(du -h "$f" | cut -f1))" >> $GITHUB_STEP_SUMMARY
           done
           if [ -z "$(find . -name '*.hap')" ]; then
-            echo "⚠️ No HAP files generated. Check build logs above." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No HAP files generated. Check build logs." >> $GITHUB_STEP_SUMMARY
           fi
