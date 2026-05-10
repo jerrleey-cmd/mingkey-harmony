@@ -1,3 +1,5 @@
 {
-  "dependencies": {}
+  "dependencies": {
+    "@ohos/hvigor-ohos-plugin": "file:./openharmony/sdk/5.0.0.120/hvigor/hvigor-ohos-plugin-5.0.0.120.har"
+  }
 }
