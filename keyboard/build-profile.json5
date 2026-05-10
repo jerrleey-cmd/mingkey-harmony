@@ -1,19 +1,9 @@
 {
-  "modelVersion": "5.0.1",
-  "app": {
-    "products": [
-      {
-        "name": "default",
-        "signingConfig": "default"
-      }
-    ]
-  },
-  "module": {
-    "buildOption": {
-      "strictMode": {
-        "caseSensitiveCheck": true,
-        "useNormalizedOHMUrl": true
-      }
+  "apiType": "stageMode",
+  "buildOption": {},
+  "targets": [
+    {
+      "name": "default"
     }
-  }
+  ]
 }
