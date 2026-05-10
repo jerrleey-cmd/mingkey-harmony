@@ -29,7 +29,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           hvigorw clean --no-daemon 2>&1 || true
-          hvigorw assembleHap --mode module -p product=default -p buildMode=debug --no-daemon 2>&1
+          hvigorw assembleHap --mode module -p product=default -p buildMode=debug --no-daemon --verbose 2>&1
 
       - name: Get build output
         id: get_build_output
