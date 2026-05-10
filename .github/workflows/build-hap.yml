@@ -28,8 +28,16 @@ jobs:
       - name: Build HAP (entry)
         run: |
           cd $GITHUB_WORKSPACE
+          # 检查环境
+          echo "=== HVIGOR VERSION ==="
+          hvigorw -v || true
+          echo "=== SDK VERSION ==="
+          echo $OHOS_BASE_SDK_HOME
+          ls -la $OHOS_BASE_SDK_HOME/
+          echo "=== BUILD PROFILE ==="
+          cat build-profile.json5
           hvigorw clean --no-daemon 2>&1 || true
-          hvigorw assembleHap --mode module -p product=default -p buildMode=debug --no-daemon --verbose 2>&1
+          hvigorw assembleHap --mode module -p product=default -p buildMode=debug --no-daemon --stacktrace 2>&1
 
       - name: Get build output
         id: get_build_output
