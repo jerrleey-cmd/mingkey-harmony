@@ -123,21 +123,30 @@ export default class EntryAbility extends UIAbility {
   private subscribeTranslateRequest(): void {
     hilog.info(0x0000, TAG, '订阅翻译请求事件');
 
-    // 订阅选项 - 使用 CommonEventSubscribeInfo
+    // 订阅选项
     const subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
       events: [TRANSLATE_REQUEST_EVENT]
     };
 
-    // 使用箭头函数直接内联处理，避免 bind() 问题
-    commonEventManager.subscribe(subscribeInfo, (err: Error, data: commonEventManager.CommonEventData) => {
-      if (err) {
-        hilog.error(0x0000, TAG, '订阅失败: %{public}s', JSON.stringify(err));
-        return;
-      }
-      hilog.info(0x0000, TAG, '收到翻译请求: %{public}s', JSON.stringify(data));
+    // 创建订阅者
+    const self = this;
+    commonEventManager.createSubscriber(subscribeInfo).then((subscriber: commonEventManager.CommonEventSubscriber) => {
+      self.subscriber = subscriber;
+      hilog.info(0x0000, TAG, '订阅者创建成功');
       
-      // 处理翻译请求
-      this.handleTranslateRequest(data);
+      // 订阅事件
+      subscriber.subscribe((err: Error, data: commonEventManager.CommonEventData) => {
+        if (err) {
+          hilog.error(0x0000, TAG, '订阅回调失败: %{public}s', JSON.stringify(err));
+          return;
+        }
+        hilog.info(0x0000, TAG, '收到翻译请求: %{public}s', JSON.stringify(data));
+        
+        // 处理翻译请求
+        self.handleTranslateRequest(data);
+      });
+    }).catch((err: Error) => {
+      hilog.error(0x0000, TAG, '创建订阅者失败: %{public}s', JSON.stringify(err));
     });
   }
 
