@@ -9,7 +9,8 @@
       "phone",
       "tablet"
     ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
     "requestPermissions": []
   }
 }
-
