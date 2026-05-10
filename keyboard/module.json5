@@ -1,0 +1,15 @@
+{
+  "module": {
+    "name": "keyboard",
+    "type": "inputMethodExtension",
+    "srcEntry": "./ets/InputMethodExtensionAbility.ets",
+    "description": "$string:keyboard_module_desc",
+    "mainElement": "MingKeyInputMethodExtensionAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet"
+    ],
+    "requestPermissions": []
+  }
+}
+
