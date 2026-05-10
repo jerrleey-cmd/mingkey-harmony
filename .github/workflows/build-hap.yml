@@ -17,9 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd $GITHUB_WORKSPACE
-          npm install 2>&1 || true
-          cd $GITHUB_WORKSPACE/entry && npm install 2>&1 || true
-          cd $GITHUB_WORKSPACE/keyboard && npm install 2>&1 || true
+          ohpm install --all 2>&1 || true
 
       - name: Build HAP (entry)
         run: |
