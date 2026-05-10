@@ -14,7 +14,6 @@ import commonEventManager from '@ohos.commonEventManager';
 import hilog from '@ohos.hilog';
 import Want from '@ohos.app.ability.Want';
 import AbilityConstant from '@ohos.app.ability.AbilityConstant';
-import AsyncCallback from '@ohos.base';
 
 /**
  * 日志域ID，用于区分不同模块的日志
@@ -129,8 +128,7 @@ export default class EntryAbility extends UIAbility {
       events: [TRANSLATE_REQUEST_EVENT]
     };
 
-    // 发布订阅 - subscribe 接受 (subscribeInfo, callback)
-    const self = this;
+    // 使用箭头函数直接内联处理，避免 bind() 问题
     commonEventManager.subscribe(subscribeInfo, (err: Error, data: commonEventManager.CommonEventData) => {
       if (err) {
         hilog.error(0x0000, TAG, '订阅失败: %{public}s', JSON.stringify(err));
@@ -139,7 +137,7 @@ export default class EntryAbility extends UIAbility {
       hilog.info(0x0000, TAG, '收到翻译请求: %{public}s', JSON.stringify(data));
       
       // 处理翻译请求
-      self.handleTranslateRequest(data);
+      this.handleTranslateRequest(data);
     });
   }
 
