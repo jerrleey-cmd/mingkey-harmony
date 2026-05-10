@@ -3,8 +3,16 @@
     "products": [
       {
         "name": "default",
-        "signingConfig": "debug"
+        "signingConfig": "default"
       }
     ]
+  },
+  "module": {
+    "buildOption": {
+      "strictMode": {
+        "caseSensitiveCheck": true,
+        "useNormalizedOHMUrl": true
+      }
+    }
   }
 }
