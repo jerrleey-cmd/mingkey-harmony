@@ -1,0 +1,12 @@
+{
+  "string": [
+    {
+      "name": "keyboard_module_desc",
+      "value": "铭键输入法键盘模块"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "用于获取AI翻译服务"
+    }
+  ]
+}

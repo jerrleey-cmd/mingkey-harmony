@@ -1,0 +1,42 @@
+{
+  "app": {
+    "compileMode": "moduleStrategy",
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "debug"
+      }
+    ],
+    "buildOption": {
+      "sourceOption": {
+        "workers": []
+      }
+    }
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "keyboard",
+      "srcPath": "./keyboard",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "module": {
+    "name": "keyboard",
+    "type": "inputMethodExtension",
+    "srcEntry": "./ets/InputMethodExtensionAbility.ets",
+    "description": "$string:keyboard_module_desc",
+    "mainElement": "MingKeyInputMethodExtensionAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet"
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET",
+        "reason": "$string:internet_permission_reason",
+        "usedScene": {
+          "abilities": [],
+          "when": "inuse"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "app": {
+    "backgroundMode": [
+      "data"
+    ],
+    "bundleName": "com.mingkey.inputmethod",
+    "executionMode": "singleton",
+    "icon": "$media:icon",
+    "label": "$string:entry_app_name",
+    "launchType": "standard",
+    "pages": "$profile:main_pages",
+    "process": "entry",
+    "targetPriority": 100,
+    "type": "entry"
+  },
+  "module": {
+    "abilities": [
+      {
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "action.system.home"
+            ]
+          }
+        ],
+        "name": "EntryAbility",
+        "srcEntry": "./ets/entryability/EntryAbility.ets",
+        "description": "$string:EntryAbility_desc",
+        "icon": "$media:icon",
+        "label": "$string:EntryAbility_label",
+        "startWindowIcon": "$media:icon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true
+      }
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET"
+      },
+      {
+        "name": "ohos.permission.COMMONEVENT_STICKY"
+      },
+      {
+        "name": "ohos.permission.NOTIFICATION_CONTROLLER"
+      },
+      {
+        "name": "ohos.permission.PUBLISH_AGENT_REMINDER"
+      }
+    ],
+    "dependencies": [
+      {
+        "moduleName": "keyboard",
+        "bundleName": "com.mingkey.inputmethod"
+      }
+    ],
+    "name": "entry",
+    "srcEntry": "./ets/entryability/EntryAbility.ets",
+    "description": "$string:module_desc",
+    "mainElement": "EntryAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet"
+    ]
+  }
+}

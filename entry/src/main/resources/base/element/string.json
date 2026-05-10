@@ -1,0 +1,20 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "铭键输入法主应用模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "铭键输入法主入口"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "铭键"
+    },
+    {
+      "name": "entry_app_name",
+      "value": "铭键输入法"
+    }
+  ]
+}

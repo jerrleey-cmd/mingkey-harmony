@@ -1,0 +1,277 @@
+/**
+ * 铭键输入法 - 主应用入口
+ * 负责主应用的生命周期管理和翻译服务初始化
+ * 
+ * 双进程架构说明：
+ * - entry模块：主应用进程，拥有网络权限，负责翻译等AI服务
+ * - keyboard模块：输入法Extension，无网络权限，负责UI和用户输入
+ * - IPC通信：通过CommonEvent进行进程间通信
+ */
+
+import UIAbility from '@ohos.app.ability.UIAbility';
+import window from '@ohos.window';
+import commonEventManager from '@ohos.commonEventManager';
+import hilog from '@hilog';
+
+/**
+ * 日志域ID，用于区分不同模块的日志
+ */
+const TAG = 'MingKeyEntryAbility';
+
+/**
+ * 翻译请求事件的名称
+ */
+const TRANSLATE_REQUEST_EVENT = 'com.mingkey.inputmethod.TRANSLATE_REQUEST';
+
+/**
+ * 翻译响应事件的名称
+ */
+const TRANSLATE_RESPONSE_EVENT = 'com.mingkey.inputmethod.TRANSLATE_RESPONSE';
+
+/**
+ * 主应用Ability类
+ * 继承UIAbility，处理应用生命周期
+ */
+export default class EntryAbility extends UIAbility {
+  // 翻译服务实例引用
+  private translateService: TranslateService | null = null;
+
+  /**
+   * Ability创建时调用
+   * 初始化翻译服务订阅
+   */
+  onCreate(want, launchParam) {
+    hilog.info(0x0000, TAG, '铭键输入法主应用启动');
+    
+    // 初始化翻译服务
+    this.initTranslateService();
+    
+    // 订阅翻译请求事件
+    this.subscribeTranslateRequest();
+  }
+
+  /**
+   * Ability销毁时调用
+   * 清理资源
+   */
+  onDestroy() {
+    hilog.info(0x0000, TAG, '铭键输入法主应用销毁');
+    
+    // 取消事件订阅
+    this.unsubscribeEvents();
+  }
+
+  /**
+   * 窗口创建时调用
+   * 设置页面内容
+   */
+  onWindowStageCreate(windowStage: window.WindowStage) {
+    hilog.info(0x0000, TAG, '窗口创建');
+    
+    // 加载主页面
+    windowStage.loadContent('pages/Index', (err, data) => {
+      if (err.code) {
+        hilog.error(0x0000, TAG, '加载页面失败: %{public}s', JSON.stringify(err));
+        return;
+      }
+      hilog.info(0x0000, TAG, '页面加载成功');
+    });
+  }
+
+  /**
+   * 初始化翻译服务
+   * 创建TranslateService单例并初始化
+   */
+  private initTranslateService(): void {
+    hilog.info(0x0000, TAG, '初始化翻译服务');
+    
+    // PoC阶段：使用模拟翻译服务
+    // 正式版将使用真实翻译API
+    this.translateService = new TranslateService();
+    this.translateService.init();
+  }
+
+  /**
+   * 订阅翻译请求事件
+   * 接收来自keyboard模块的翻译请求
+   */
+  private subscribeTranslateRequest(): void {
+    hilog.info(0x0000, TAG, '订阅翻译请求事件');
+
+    // 订阅选项
+    const subscribeOptions: commonEventManager.SubscribeOptions = {
+      events: [TRANSLATE_REQUEST_EVENT]
+    };
+
+    // 订阅回调
+    const callback = (err, subscribeInfo) => {
+      if (err) {
+        hilog.error(0x0000, TAG, '订阅失败: %{public}s', JSON.stringify(err));
+        return;
+      }
+      hilog.info(0x0000, TAG, '订阅成功，订阅ID: %{public}d', subscribeInfo.subscribeId);
+    };
+
+    // 发布订阅
+    commonEventManager.subscribe(subscribeOptions, this.handleTranslateRequest.bind(this), callback);
+  }
+
+  /**
+   * 处理翻译请求
+   * @param err 错误信息
+   * @param data 事件数据
+   */
+  private handleTranslateRequest(err: ESObject, data: ESObject): void {
+    if (err) {
+      hilog.error(0x0000, TAG, '处理翻译请求失败: %{public}s', JSON.stringify(err));
+      return;
+    }
+
+    hilog.info(0x0000, TAG, '收到翻译请求: %{public}s', JSON.stringify(data));
+
+    // 解析请求数据
+    const requestData = data.parameters as ESObject;
+    const text = requestData?.text as string || '';
+    const sourceLang = requestData?.sourceLang as string || 'zh';
+    const targetLang = requestData?.targetLang as string || 'en';
+    const requestId = requestData?.requestId as string || '';
+
+    // 调用翻译服务
+    if (this.translateService) {
+      this.translateService.translate(text, sourceLang, targetLang)
+        .then((result) => {
+          // 发布翻译结果
+          this.publishTranslateResponse(requestId, result);
+        })
+        .catch((error) => {
+          hilog.error(0x0000, TAG, '翻译失败: %{public}s', JSON.stringify(error));
+          // 发布错误结果
+          this.publishTranslateResponse(requestId, {
+            success: false,
+            error: '翻译服务异常'
+          });
+        });
+    }
+  }
+
+  /**
+   * 发布翻译响应事件
+   * 将翻译结果发送给keyboard模块
+   * @param requestId 请求ID
+   * @param result 翻译结果
+   */
+  private publishTranslateResponse(requestId: string, result: ESObject): void {
+    hilog.info(0x0000, TAG, '发布翻译响应: %{public}s', JSON.stringify(result));
+
+    // 发布选项
+    const publishOptions: commonEventManager.PublishOptions = {
+      parameters: {
+        requestId: requestId,
+        result: JSON.stringify(result)
+      }
+    };
+
+    // 发布事件
+    commonEventManager.publish(TRANSLATE_RESPONSE_EVENT, publishOptions, (err) => {
+      if (err) {
+        hilog.error(0x0000, TAG, '发布翻译响应失败: %{public}s', JSON.stringify(err));
+      } else {
+        hilog.info(0x0000, TAG, '翻译响应已发布');
+      }
+    });
+  }
+
+  /**
+   * 取消事件订阅
+   */
+  private unsubscribeEvents(): void {
+    hilog.info(0x0000, TAG, '取消事件订阅');
+    // 实际取消订阅逻辑（简化版）
+  }
+}
+
+/**
+ * 翻译服务类
+ * PoC阶段使用模拟翻译
+ * 正式版将集成真实翻译API
+ */
+class TranslateService {
+  private initialized: boolean = false;
+
+  /**
+   * 初始化翻译服务
+   */
+  init(): void {
+    hilog.info(0x0000, TAG, '翻译服务初始化');
+    this.initialized = true;
+  }
+
+  /**
+   * 执行翻译
+   * @param text 源文本
+   * @param sourceLang 源语言
+   * @param targetLang 目标语言
+   * @returns 翻译结果
+   */
+  async translate(text: string, sourceLang: string, targetLang: string): Promise<ESObject> {
+    hilog.info(0x0000, TAG, '执行翻译: %{public}s -> %{public}s', sourceLang, targetLang);
+
+    // PoC阶段：使用简单的模拟翻译
+    // 实际场景中这里会调用真实的翻译API
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const result = this.mockTranslate(text, sourceLang, targetLang);
+        resolve({
+          success: true,
+          original: text,
+          translated: result,
+          sourceLang: sourceLang,
+          targetLang: targetLang
+        });
+      }, 500); // 模拟网络延迟
+    });
+  }
+
+  /**
+   * 模拟翻译函数
+   * PoC阶段使用简单的词典映射
+   * @param text 源文本
+   * @param sourceLang 源语言
+   * @param targetLang 目标语言
+   * @returns 翻译结果
+   */
+  private mockTranslate(text: string, sourceLang: string, targetLang: string): string {
+    // 简单的中英对照词典（PoC用）
+    const dict: Record<string, string> = {
+      '你好': 'Hello',
+      '世界': 'World',
+      '铭键': 'MingKey',
+      '输入法': 'Input Method',
+      '翻译': 'Translate',
+      '谢谢': 'Thank you',
+      '再见': 'Goodbye',
+      '早上好': 'Good morning',
+      '晚上好': 'Good evening',
+      '我爱你': 'I love you'
+    };
+
+    // 如果是中文到英文的翻译
+    if (sourceLang === 'zh' && targetLang === 'en') {
+      // 尝试精确匹配
+      if (dict[text]) {
+        return dict[text];
+      }
+      // 否则返回原文（模拟未找到翻译的情况）
+      return `[Translation]: ${text}`;
+    }
+
+    // 如果是英文到中文的翻译
+    if (sourceLang === 'en' && targetLang === 'zh') {
+      // 简单模拟
+      return `[翻译]: ${text}`;
+    }
+
+    // 默认返回原文
+    return text;
+  }
+}

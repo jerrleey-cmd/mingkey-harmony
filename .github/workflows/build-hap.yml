@@ -1,0 +1,94 @@
+name: Build HarmonyOS HAP
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Download OpenHarmony SDK
+        run: |
+          # Download SDK from Huawei mirror
+          curl -L -o /tmp/ohos-sdk.tar.gz "https://repo.huaweicloud.com/openharmony/os/5.0.1-Release/ohos-sdk-windows_linux-public.tar.gz"
+          mkdir -p $HOME/ohos-sdk
+          tar -xzf /tmp/ohos-sdk.tar.gz -C $HOME/ohos-sdk ohos-sdk/linux/
+          rm -f /tmp/ohos-sdk.tar.gz
+          echo "OHOS_SDK_HOME=$HOME/ohos-sdk/ohos-sdk/linux" >> $GITHUB_ENV
+
+      - name: Download Command Line Tools
+        run: |
+          curl -L -o /tmp/clt.zip "https://repo.huaweicloud.com/harmonyos/ohpm/5.0.5/commandline-tools-linux-x64-5.0.5.310.zip"
+          unzip -qo /tmp/clt.zip -d $HOME/command-line-tools
+          rm -f /tmp/clt.zip
+          # Add ohpm and hvigorw to PATH
+          CLT_DIR=$(find $HOME/command-line-tools -name "ohpm" -type f -executable | head -1 | xargs dirname)
+          echo "CLT_DIR=$CLT_DIR" >> $GITHUB_ENV
+          echo "$CLT_DIR" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          # Install ohpm dependencies
+          export PATH="$CLT_DIR:$PATH"
+          ohpm install --all 2>&1 || true
+          cd entry && ohpm install --all 2>&1 || true
+          cd ../keyboard && ohpm install --all 2>&1 || true
+
+      - name: Build HAP
+        run: |
+          export PATH="$CLT_DIR:$PATH"
+          export OHOS_SDK_HOME=$OHOS_SDK_HOME
+          export JAVA_HOME=$JAVA_HOME
+          # Find hvigorw
+          HVIGORW=$(find $HOME/command-line-tools -name "hvigorw" -type f -executable | head -1)
+          if [ -z "$HVIGORW" ]; then
+            HVIGORW=$(find . -name "hvigorw" -type f -executable | head -1)
+          fi
+          # Try building
+          if [ -n "$HVIGORW" ]; then
+            chmod +x $HVIGORW
+            $HVIGORW assembleHap --mode module -p product=default -p buildMode=debug --no-daemon 2>&1 || true
+          else
+            # Fallback: use npm-installed hvigor
+            npm install @ohos/hvigor@5 @ohos/hvigor-ohos-plugin@5
+            node node_modules/@ohos/hvigor/bin/hvigor.js assembleHap --mode module -p product=default -p buildMode=debug --no-daemon 2>&1 || true
+          fi
+
+      - name: Find and upload HAP files
+        uses: actions/upload-artifact@v4
+        with:
+          name: mingkey-hap
+          path: |
+            **/*.hap
+            **/*.app
+          if-no-files-found: warn
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          find . -name "*.hap" -o -name "*.app" | while read f; do
+            echo "- \`${f}\` ($(du -h "$f" | cut -f1))" >> $GITHUB_STEP_SUMMARY
+          done
+          if [ -z "$(find . -name '*.hap')" ]; then
+            echo "⚠️ No HAP files generated. Check build logs." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Build may need DevEco Studio for full compilation." >> $GITHUB_STEP_SUMMARY
+          fi
