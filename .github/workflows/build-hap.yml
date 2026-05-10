@@ -17,7 +17,13 @@ jobs:
       - name: Install dependencies
         run: |
           cd $GITHUB_WORKSPACE
-          ohpm install --all 2>&1 || true
+          # 配置 npm 使用华为镜像（@ohos包在npm仓库）
+          export NODE_HOME=$COMMANDLINE_TOOL_DIR/command-line-tools/tool/node
+          export PATH=$NODE_HOME/bin:$PATH
+          npm config set registry https://repo.huaweicloud.com/repository/npm/
+          npm config set "@ohos:registry" https://repo.harmonyos.com/npm/
+          # 安装 hvigor 插件
+          npm install @ohos/hvigor-ohos-plugin@5.0.4 --save-dev 2>&1 || true
 
       - name: Build HAP (entry)
         run: |
