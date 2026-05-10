@@ -1,6 +1,9 @@
 {
-  "dependencies": {
-    "@ohos/hypium": "1.0.16",
-    "@ohos/hvigor-ohos-plugin": "5.16.2"
-  }
+  "name": "entry",
+  "version": "0.1.0",
+  "description": "铭键输入法主应用",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {}
 }

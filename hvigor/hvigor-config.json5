@@ -1,5 +1,12 @@
 {
-  "version": "5.16.2",
-  "localDependencies": {},
-  "remoteDependencies": {}
+  "modelVersion": "5.0.1",
+  "dependencies": {},
+  "execution": {
+  },
+  "logging": {
+  },
+  "debugging": {
+  },
+  "nodeOptions": {
+  }
 }
