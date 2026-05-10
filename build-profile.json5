@@ -34,16 +34,6 @@
           "applyToProducts": ["default"]
         }
       ]
-    },
-    {
-      "name": "keyboard",
-      "srcPath": "./keyboard",
-      "targets": [
-        {
-          "name": "default",
-          "applyToProducts": ["default"]
-        }
-      ]
     }
   ]
 }
