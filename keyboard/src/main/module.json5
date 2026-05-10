@@ -1,7 +1,7 @@
 {
   "module": {
     "name": "keyboard",
-    "type": "inputMethodExtension",
+    "type": "feature",
     "srcEntry": "./ets/InputMethodExtensionAbility.ets",
     "description": "$string:keyboard_module_desc",
     "mainElement": "MingKeyInputMethodExtensionAbility",
