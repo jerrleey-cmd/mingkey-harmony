@@ -14,6 +14,7 @@ import commonEventManager from '@ohos.commonEventManager';
 import hilog from '@ohos.hilog';
 import Want from '@ohos.app.ability.Want';
 import AbilityConstant from '@ohos.app.ability.AbilityConstant';
+import { BusinessError } from '@kit.BasicServicesKit';
 
 /**
  * 日志域ID，用于区分不同模块的日志
@@ -117,6 +118,21 @@ export default class EntryAbility extends UIAbility {
   }
 
   /**
+   * 订阅回调函数
+   */
+  private subscribeCallback(err: BusinessError, data: commonEventManager.CommonEventData): void {
+    if (err) {
+      hilog.error(0x0000, TAG, '订阅回调失败: %{public}s, code: %{public}d, message: %{public}s', 
+        JSON.stringify(err), err.code, err.message);
+      return;
+    }
+    hilog.info(0x0000, TAG, '收到翻译请求: %{public}s', JSON.stringify(data));
+    
+    // 处理翻译请求
+    this.handleTranslateRequest(data);
+  }
+
+  /**
    * 订阅翻译请求事件
    * 接收来自keyboard模块的翻译请求
    */
@@ -129,25 +145,21 @@ export default class EntryAbility extends UIAbility {
     };
 
     // 创建订阅者
-    const self = this;
-    commonEventManager.createSubscriber(subscribeInfo).then((subscriber: commonEventManager.CommonEventSubscriber) => {
-      self.subscriber = subscriber;
-      hilog.info(0x0000, TAG, '订阅者创建成功');
-      
-      // 订阅事件
-      subscriber.subscribe((err: Error, data: commonEventManager.CommonEventData) => {
+    try {
+      commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber: commonEventManager.CommonEventSubscriber) => {
         if (err) {
-          hilog.error(0x0000, TAG, '订阅回调失败: %{public}s', JSON.stringify(err));
+          hilog.error(0x0000, TAG, '创建订阅者失败: %{public}s', JSON.stringify(err));
           return;
         }
-        hilog.info(0x0000, TAG, '收到翻译请求: %{public}s', JSON.stringify(data));
+        this.subscriber = subscriber;
+        hilog.info(0x0000, TAG, '订阅者创建成功');
         
-        // 处理翻译请求
-        self.handleTranslateRequest(data);
+        // 使用静态方法订阅 - commonEventManager.subscribe(subscriber, callback)
+        commonEventManager.subscribe(subscriber, this.subscribeCallback.bind(this));
       });
-    }).catch((err: Error) => {
-      hilog.error(0x0000, TAG, '创建订阅者失败: %{public}s', JSON.stringify(err));
-    });
+    } catch (error) {
+      hilog.error(0x0000, TAG, '创建订阅者异常: %{public}s', JSON.stringify(error));
+    }
   }
 
   /**
@@ -200,7 +212,7 @@ export default class EntryAbility extends UIAbility {
     };
 
     // 发布事件
-    commonEventManager.publish(TRANSLATE_RESPONSE_EVENT, publishData, (err: Error) => {
+    commonEventManager.publish(TRANSLATE_RESPONSE_EVENT, publishData, (err: BusinessError) => {
       if (err) {
         hilog.error(0x0000, TAG, '发布翻译响应失败: %{public}s', JSON.stringify(err));
       } else {
@@ -215,7 +227,7 @@ export default class EntryAbility extends UIAbility {
   private unsubscribeEvents(): void {
     hilog.info(0x0000, TAG, '取消事件订阅');
     if (this.subscriber) {
-      commonEventManager.unsubscribe(this.subscriber, (err: Error) => {
+      commonEventManager.unsubscribe(this.subscriber, (err: BusinessError) => {
         if (err) {
           hilog.error(0x0000, TAG, '取消订阅失败: %{public}s', JSON.stringify(err));
         } else {
